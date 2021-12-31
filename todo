@@ -1,0 +1,246 @@
+0. Partie à 1 joueur : Bot qui fait 2 mouvements (poser bombe + s'abriter) sans mourir
+x Mise à jour du plateau à chaque event reçu
+x enlever le sleep entre deux et le remplacer par un wait until move de type "stop"
+x Gérer le cas où plusieurs trucs sont sur la même case
+x Stocker les bombes non explosées (x, y, idplayer, power)
+x Bouger quand une bombe a explosé
+
+1. Partie à 1 joueur : Bot explorateur dont le but est de dévoiler les cases du jeu
+jusqu'à entrer dans le territoire d'un autre joueur
+
+1.1 Partie à 1 joueur : Bot qui fait une exploration
+Algorithme :
+x a) Je pose une bombe sur ma case actuelle
+x b) Je vais m'abriter dans la case safe la plus proche
+x c) Je récupère les bonus découverts s'il y en a
+x d) Parmi les cases accessibles depuis ma position je vais sur la 1ère case avec le maximum
+de cases voisines non découvertes, si ce n'est pas le cas de ma case actuelle
+
+1.2. Partie à 1 joueur : Bot qui fait plusieurs explorations
+x Diminuer le temps de recherche de la case accessible ayant un maximum de cases voisines
+découvrables (brique).
+Notion nouvelle : frontière du territoire d'un joueur.
+Territoire d'un joueur = l'ensemble des cases accessibles depuis la case actuelle du joueur
+Frontière = Case d'un territoire qui possède au moins une case brique adjacente
+Classes AssocPlayerBoundary, Boundary et Boundaries
+- Init AssocPlayerBoundary avant le while True du jeu
+- Set AssocPlayerBoundary quand un joueur change d'id frontière
+- Init de Boundaries avant le while True du jeu
+- Pop de Boundaries quand deux territoires fusionnent
+- Add (x, y) d'une frontière = quand une case fait maintenant partie de la frontière,
+après dévoilement par une bombe
+- Pop (x, y) d'une frontière = quand une bombe a explosé sur une case de la frontière
+- Union de deux frontières = quand deux joueurs se retrouvent dans le même territoire
+
+1.3. Partie à 1 joueur : Bot qui se cache dans une case safe plus proche de sa bombe
+x Trouver une case safe plus proche de la bombe quand c'est nécessaire
+- Constat : Actuellement, le bot s'éloigne en ligne droite, et tourne si le nombre de cases 
+en ligne droite nest pas suffisant. Il se cache parfois trop loin de la bombe. Cela lui
+demande de parcourir plus de cases pour aller récupérer les bonus découverts par l'explosion
+de la bombe.
+- Une bombe explose les cases situées dans la même ligne ou colonne qu'elle, dans la limite
+de sa puissance.
+- Idée : Une case safe est une case n'ayant pas de coordonnée commune avec la bombe ou
+qui est assez loin de la bombe (distance > puissance de la bombe)
+
+1.4  Partie à 1 joueur : Bot qui explore le plateau en posant plusieurs bombes à la fois
+
+Contexte :
+Je commence avec une bombe. Quand je récupère un bonus bombeUP (après un move stop),
+je peux poser une 2ème bombe.
+
+Algorithme pour n bombes :
+a) Je pose une bombe sur ma case actuelle (case de la frontière) cf
+b) Tant qu'il me reste une bombe non posée et qu'il y a un chemin pour s'abriter après la prochaine
+bombe posée:
+    b1) J'ajoute les cases exposées par la bombe dans ma variable liste de cases interdites
+    b2) Je cherche la case (non dangereuse) de la frontière la plus proche (cfpp) et je vais sur la cfpp
+    b3) Je pose une bombe sur la cfpp
+c) Je vais m'abriter dans la case safe la plus proche sans passer par la zone d'explosion 
+de la bombe n°1 (ou de toutes les bombes sauf la dernière, si + de 2 bombes)
+c1) La bombe n°1 puis la bombe n° 2 explosent
+c2) Après une explosion d'une de mes bombes, je stocke les bonus découverts
+d) Je récupère les bonus découverts s'il y en a
+e) Parmi les cases de ma frontière je vais sur la 1ère case avec le maximum de cases voisines 
+non découvertes, si ce n'est pas le cas de ma case actuelle
+
+Quelques nouvelles fonctions :
+1) path_to_nearest_not_dangerous_boundary_case (self, source_x, source_y, board) dans Boundary
+Renvoie un chemin vers la case (qui n'est pas occupée par une bombe) la plus proche de la 
+source (x, y) dans la frontière, ou None si la source n'est pas dans la frontière
+2) path_to_shelter_multibomb(self, current_x, current_y, bombs)
+dans Board.
+À partir des bombes, calcul des cases explosées par ces bombes (cases interdites).
+Renvoie [] si la case actuelle est déjà safe, sinon le chemin vers l'abri le plus proche
+qui ne passe pas par une case explosée par une bombe.
+
+## DONE 1 joueur
+x Régler la boucle infinie de pose/abri quand la frontière est vide = 0 case brique dans le plateau
+x Régler le pb des bombes mises côte-à-côte : 1ere bombe sur la frontière et la 2eme non
+x Explorer (amasser les bonus) le plateau en mode multi-bombe (2 bombes)
+x Correction de la mise à jour de la frontière, qui se fait après mise à jour du plateau maintenant
+x Éviter d'ajouter une bombe s'il n'y a pas d'abri depuis cette nouvelle bombe
+Fonction : path_to_shelter_if_add_bomb(self, current_x, current_y, bomb, bombs) dans Board
+Renvoie le chemin vers l'abri si la bombe peut être posée, [] sinon.
+- Copie le plateau.
+- Place la bombe sur la copie du plateau.
+- Copie bombs et y ajoute bomb à la copie de bombs. (bombs_copy)
+- Renvoie path_to_shelter_multibomb(current_x, current_y, bombs_copy)
+x Éviter qu'un chemin (path_to_shelter_multibomb, path_to_nearest_not_bomb_boundary_case)
+passe par une case étant une bombe (pas le droit de passer par une case bombe)
+x Éviter de poser deux bombes si le 1er bonus découvert est un bonus de bombe (bombeUP)
+
+1.5 Passage de 1 joueur à n joueurs sur le plateau
+x Fait antérieurement : enregistrement des joueurs dans la classe Players
+x Passer le nombre de joueurs en paramètre du programme
+x La partie démarre correctement avec n joueurs sur le plateau
+
+2. Partie à n joueurs
+
+2.1 Lorsqu'il est seul sur son territoire, le bot peut explorer son territoire (pose de bombe et
+récolte de bonus) sans être affecté lorsqu'un autre joueur sur le plateau :
+x se déplace sur une autre case : ok par design, le déplacement d'un autre joueur met à jour
+le plateau et les coordonnées de ce joueur
+x pose une bombe et que le bot est à l'arrêt sur sa case après avoir posé sa bombe
+x récolte un bonus : ok par design, la récolte d'un bonus par un joueur n'affecte que celui-ci
+(mise à jour de sa position, incrément de ses bombes si bonus bombup ou de sa puissance si 
+flammeUP) et met à jour le plateau
+
+2.2 Lorsqu'il y a un autre joueur dans son territoire, le bot va l'attaquer avec une bombe.
+x Algorithme :
+Tant qu'il y a un ennemi accessible :
+    a) Le bot va poser une bombe sur la case où est l'ennemi.
+    b) Le bot va se cacher de sa bombe.
+    c) Quand la bombe explose, si un (ou des) bonus est découvert, le bot va le chercher.
+
+2.3 Lorsqu'un autre joueur met en danger le bot en posant une bombe, le bot va s'abriter.
+x Cas 1 : Bot arrêté sur une case puis un ennemi le met en danger
+Si le bot est arrêté sur une case, par exemple dans l'attente de l'explosion de sa bombe,
+et qu'un ennemi pose une bombe telle que le bot est dans le champ d'explosion de celle-ci, 
+le bot reçoit l'événement d'alerte à la bombe et réagit en allant s'abriter en mode 
+multibombe.
+x Cas 2 : Bot en mouvement et une bombe sur son chemin le fait s'arrêter devant
+Le bot reçoit l'événement qu'il est arrêté sur la case devant la bombe et réagit en allant 
+s'abriter en mode multibombe.
+
+2.4 S'il y a un chemin sûr entre le bot et un ennemi et que l'ennemi est à l'arrêt, le bot
+va poser une bombe sur la case de l'ennemi puis s'abriter
+Scénario : Un ennemi accessible pose une bombe menaçant le bot. Le bot va s'abriter. L'ennemi
+ayant posé la bombe va aussi s'abriter. Les deux joueurs se trouvent donc sur des cases sûres.
+x Comportement : Le bot détermine s'il y a un chemin non dangereux vers l'ennemi et s'il y a 
+un chemin pour s'abriter après pose de bombe. Si oui, il va poser une bombe menaçant l'ennemi. 
+La suite du comportement est déjà implémentée : Quand il pose la bombe, il se retrouve sur une 
+case non safe donc il va s'abriter.
+
+2.5 Le bot traite les mouvements caduques dans sa queue moves
+x Si c'est une pose de bombe sur la case actuelle et qu'elle contient déjà une bombe, il
+évalue le mouvement suivant
+x Si c'est un chemin et que :
+    x Il a une distance strictement supérieure à 1 avec la 1ère case du chemin, il construit
+    un chemin vers cette case puis réévalue si le chemin modifié est un mouvement caduque
+    x La dernière case est une pose de bombe et cette case contient déjà une bombe, il
+    cherche la dernière case qui ne contient pas de bombe et n'est pas exposée par la bombe
+    et pose une bombe dessus
+    x Il n'y a plus de bonus sur la dernière case, il évalue le mouvement suivant
+
+2.6 Travail sur les arguments du programme
+x Le programme prend 3 arguments :
+    a) nom du joueur
+    b) nombre de joueurs, optionnel, vaut 1 par défaut
+    c) nom de la partie, optionnel, vaut "dorogame" par défaut
+x La validité des arguments est vérifiée :
+    a) S'il y a moins de 2 arguments ou plus de 4 arguments, un message d'erreur indique les 
+    arguments du programme et s'ils sont optionnels, leur valeur par défaut
+    b) Si le deuxième argument est présent et n'est pas un nombre entier strictement positif,
+    un message d'erreur indique que cet argument doit être un nombre entier strictement positif.
+
+2.7. Le bot s'abrite en suivant le chemin le moins dangereux
+x Les bombes sont assignées à un score de dangerosité dont le maximum est de 232 (nombre de cases 
+non métal). Plus une bombe est récente dans Bombs, plus sa dangerosité est faible. À chaque fois
+que Bombs est vide, le score attribué à la prochaine bombe insérée est 232.
+x Il y a aussi une fonction supplémentaire de calcul des cases interdites qui renvoie un diction-
+naire de cases dangereuses de la forme key=(x, y), value=score. Pour chaque bombe, elle calcule les
+cases exposées et assigne à ces cases le score de la bombe. Si une case est commune à plusieurs 
+bombes, son score est le score maximal de ces bombes.
+x Il y a deux fonctions de recherche d'abri spécifiques : 
+    x L'une prend en compte les bombes, calcule les cases dangereuses et renvoie l'appel à l'autre
+    fonction de recherche d'abri
+    x L'autre prend en compte les cases interdites. 
+    J'ajoute un voisin atteignable dans le dictionnaire de noeuds visités s'il a la dangerosité 
+    minimale des voisins et je mets à jour le dictionnaire de noeuds visités pour que le parent 
+    soit celui de dangerosité minimale.
+
+2.8 Si un ennemi est sur la même case que le bot et qu'il y a un chemin pour s'abriter après avoir
+posé une bombe sur la case commune au bot et à l'ennemi, le bot pose une bombe sur sa case.
+
+Idées de stratégies
+Stratégie n°1 d'exploration du plateau par pose de bombe pour amasser les bonus
+(but du hasard : éviter la reconnaissance de pattern de jeu par un bot ennemi)
+1ère bombe à placer : case à choisir au hasard parmi les cases alentours vides.
+Stratégie n°2 de récupération de bonus : prendre un chemin qui nous fait gagner le plus de bonus
+Stratégie n°3 offensive : aller vers l'ennemi et poser des bombes
+Stratégie n°4 défensive : poser une bombe pour éloigner/tuer l'ennemi
+Stratégie n°5 de fuite : s'éloigner de l'ennemi ou de la bombe
+Stratégie n°6 oeil pour oeil dent pour dent : si mon bot est obligé de s'abriter pour éviter
+l'explosion d'une bombe adverse, il réagit en attaquant le propriétaire de la bombe
+
+3. Autres stratégies : 
+- Ne pas entrer dans le champ d'explosion d'une bombe
+- Éviter les cases avec les malus
+- S'adapter au nombre de bombes qu'on peut poser : si 1 bombe, attendre qu'elle explose avant de
+bouger. sinon, on peut se diriger vers un autre endroit où poser la prochaine bombe et réussir à
+s'abriter pour éviter les deux explosions de bombe
+
+4. On peut imaginer mettre une priorité à la prise de bonus : 
+flammeUP > speedUP > bombeUP > nobonus
+
+## TODO multi-joueurs
+
+- Récupérer un bonus exposé par une bombe si on est plus proche du bonus que le propriétaire de 
+la bombe et qu'il y a un chemin sûr pour y aller
+
+- Optimisation sur le nombre de bombes posées : Mettre une bombe à une case qui ne parcourt
+pas de cases briques en commun avec la/les autres bombes
+
+- Optimisation sur le nombre de bombes posées : augmenter le nombre de bombes posées lors du farming 
+multibombe en longeant la frontière
+
+- Longer une frontière pour faire un multibombe viable à + de 2 bombes
+Algorithme d'exploration avec longement de frontière :
+1) Trouver le chemin vers une case de la frontière
+    A) case ayant le maximum de voisins découvrables
+ Ou B) case la plus proche de la case courante
+2) Aller sur cette case et poser une bombe
+3) Parcourir les autres cases dans une direction (gauche, droite) de la frontière pour
+lister les cases où poser les n bombes dans la limite du nombre de bombes et la limite de 
+pouvoir s'abriter
+4) Calculer les chemins pour aller vers ces cases et y poser les bombes
+5) Aller s'abriter de toutes les bombes posées et attendre l'explosion des bombes
+6) Ramasser les éventuels bonus découverts
+
+- Metre en place la transition :
+Concept de transition :
+C'est le moment où le bot a posé ses bombes et que l'une des explosions de bombe casse la frontière 
+avec un autre joueur ce qui augmente le nombre de joueurs adverses dans son territoire. 
+À chaque explosion d'un de ses bombes suivantes, il vérifie si l'explosion a découvert un ou des bonus. 
+Si oui : s'il peut sans risque aller récupérer le bonus, il va récupérer le bonus, sinon il attend la 
+prochaine explosion de bombe.
+Transition = Changement d'état ou bombes présentes qui vont exploser ou queue moves non vide
+Changement d'état = Un état "seul dans son territoire" qui passe à un état "pas seul dans son territoire" 
+et vice-versa
+
+5. Partie à n joueurs avec des alliés et des ennemis
+
+5.1 Un bot ne fait pas de mal à ses alliés
+x Un allié a un nom contenant 'doro'.
+
+5.2 Un ennemi n'est plus considéré comme accessible s'il est mort.
+
+5.3 Si le bot est dans un territoire où il n'y a que des alliés, ils continue tous leur exploration
+multibombe
+
+5.4 Si un ennemi est arrêté (idle) sur une case quand sa frontière s'unifie avec celle de mon bot,
+mon bot l'attaque.
+Deux sources d'explosion de la bombe qui unifie les deux frontières de territoire :
+x Cas 1: L'explosion de la bombe de mon bot
+- Cas 2: L'explosion de la bombe de l'ennemi à l'arrêt

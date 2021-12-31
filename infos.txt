@@ -1,0 +1,33 @@
+Auteur : Dorothée Huynh
+
+Version de Python utilisée : 3.9.1
+
+Installations :
+Via pip : Module websockets
+Dans Applications\Python 3.9\ : Exécutable "Install Certificates.command"
+
+Coordonnées du plateau :
+0,0  1,0  ... 13,0  14,0
+0,1  1,1  ... 13,1  14,1
+...  ...       ...   ...
+0,19 1,19 ... 13,19 14,19
+0,20 1,20 ... 13,20 14,20
+
+Exemples d'évènements du serveur :
+{'new_player': 'DoroBOT', 'id': 0, 'xBlock': 0, 'yBlock': 0}
+{'move': 'down', 'id': 0, 'xBlock': 0, 'yBlock': 0, 'xp': '0.50', 'yp': '0.50'}
+{'alert_bombe': 0, 'x': 0, 'y': 1, 'puissance': 1}
+{'move': 'stop', 'id': 0, 'xBlock': 0, 'yBlock': 1, 'xp': '0.50', 'yp': '0.00'}
+{'move': 'right', 'id': 0, 'xBlock': 2, 'yBlock': 2, 'xp': '0.00', 'yp': '0.50'}
+{'move': 'left', 'id': 0, 'xBlock': 2, 'yBlock': 2, 'xp': '0.50', 'yp': '0.50'}
+{'move': 'up', 'id': 0, 'xBlock': 0, 'yBlock': 2, 'xp': '0.50', 'yp': '0.50'}
+{'boom': 0, 'x': 0, 'y': 1, 'infX': 0, 'infY': 1, 'supX': 0, 'supY': 1, 'puissance': 1, 
+    'bonus': [{'type': 'flammeUP', 'x': 0, 'y': 2}], 'dead': [{'whoIS': 0, 'x': 0, 'y': 1}]}
+{'takenBY': 0, 'bnType': 'flammeUP', 'x': 2, 'y': 3, 'speed': 250}
+{'equalGame': 1}
+{'winner': 'DoroBOT', 'win_id': 0}
+
+Règles : 
+- On ne peut pas commencer un path en mettant une bombe sur la case actuelle :
+Le bot sera déplacé dans une case autour et reviendra sur la case où poser la bombe
+- Un bonus flamme agit sur les bombes posées après la récupération de ce bonus flamme
